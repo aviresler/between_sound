@@ -64,7 +64,8 @@ class Model(object):
             self.conf.data_dir,
             self.conf.data_list,
             self.conf.input_size,
-            self.coord)
+            self.coord,
+            self.sess)
             self.sound_batch, self.label_batch = reader.dequeue(self.conf.batch_size)
         
         print(self.sound_batch.shape)
