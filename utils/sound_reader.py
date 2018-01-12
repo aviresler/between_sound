@@ -7,7 +7,9 @@ Created on Sun Jan  7 21:26:01 2018
 import numpy as np
 import tensorflow as tf
 import csv
+import scipy.io.wavfile
 from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
+
 
 def read_labeled_sound_list(data_dir, data_list):
     """Reads txt file containing paths to sound files and ground truth labels.
@@ -31,54 +33,30 @@ def read_labeled_sound_list(data_dir, data_list):
     
     return sound_files, labels, is_esc10
 
-def read_sounds_from_disk(input_queue, input_size): # optional pre-processing arguments
+def read_sounds_from_disk(input_queue, input_size,sess): # optional pre-processing arguments
     """Read one sound and its corresponding label and pre-process it.
-    
+
     Args:
       input_queue: tf queue with paths to the sounds and its labels.
       input_size: a tuple with (height, width) values.
                   If not given, return images of original size.
-      random_scale: whether to randomly scale the images prior
-                    to random crop.
-      random_mirror: whether to randomly mirror the images prior
-                    to random crop.
-      ignore_label: index of label to ignore during the training.
-      img_mean: vector of mean colour values.
-      
+
     Returns:
-      Two tensors: the decoded image and its mask.
+      Two tensors: the decoded sound and its label.
     """
-    #sound = tf.read_file(input_queue[0])
+
     audio_binary = tf.read_file(input_queue[0])
+    #print(audio_binary)
     desired_channels = 1
-    wav_decoder = contrib_audio.decode_wav(audio_binary,desired_channels=desired_channels)
-    sound  = wav_decoder.audio.flatten()
-    
+    wav_decoder = contrib_audio.decode_wav(audio_binary, desired_channels=desired_channels)
+    sound = wav_decoder.audio
+    sound.set_shape([ input_size, 1])
+    sound = tf.transpose(sound)
+    sound = tf.expand_dims(sound, -1)
+
     label = input_queue[1]
-    
-    ##TODO implement preprocessing
-    
-#    img = tf.image.decode_jpeg(img_contents, channels=3)
-#    img_r, img_g, img_b = tf.split(axis=2, num_or_size_splits=3, value=img)
-#    img = tf.cast(tf.concat(axis=2, values=[img_b, img_g, img_r]), dtype=tf.float32)
-#    # Extract mean.
-#    img -= img_mean
-#
-#    label = tf.image.decode_png(label_contents, channels=1)
-#
-#    if input_size is not None:
-#        h, w = input_size
-#
-#        # Randomly scale the images and labels.
-#        if random_scale:
-#            img, label = image_scaling(img, label)
-#
-#        # Randomly mirror the images and labels.
-#        if random_mirror:
-#            img, label = image_mirroring(img, label)
-#
-#        # Randomly crops the images and labels.
-#        img, label = random_crop_and_pad_image_and_labels(img, label, h, w, ignore_label)
+
+    #TODO implement preprocessing
 
     return sound, label
 
@@ -88,13 +66,14 @@ class SoundReader(object):
        from the disk, and enqueues them into a TensorFlow queue.
     '''
 
-    def __init__(self, data_dir, data_list, input_size, coord):
+    def __init__(self, data_dir, data_list, input_size, coord,sess):
         '''Initialise an ImageReader.
         
         Args:
           data_dir: path to the directory with images and masks.
           data_list: path to the file with lines of the form '/path/to/image /path/to/mask'.
           input_size: all files will be resized to that value.
+          sess: tensorflow session
           coord: TensorFlow queue coordinator.
         '''
         
@@ -102,14 +81,15 @@ class SoundReader(object):
         self.data_list = data_list
         self.input_size = input_size
         self.coord = coord
+        self.sess = sess
         
         self.sounds, self.labels, self.is_ec10 = read_labeled_sound_list(self.data_dir, self.data_list)
 
         self.sounds = tf.convert_to_tensor(self.sounds, dtype=tf.string)
         self.labels = tf.convert_to_tensor(self.labels, dtype=tf.int32)
         self.queue = tf.train.slice_input_producer([self.sounds, self.labels],
-                                                   shuffle=input_size is not None) # not shuffling if it is val
-        self.sound, self.label = read_sounds_from_disk(self.queue, self.input_size) 
+                                                   shuffle=False) # not shuffling if it is val
+        self.sound, self.label = read_sounds_from_disk(self.queue, self.input_size,self.sess)
 
     def dequeue(self, num_elements):
         '''Pack images and labels into a batch.
