@@ -12,13 +12,19 @@ def configure():
     flags = tf.app.flags
 
     # training
-    flags.DEFINE_integer('num_steps', 20000, 'maximum number of iterations')
-    flags.DEFINE_integer('save_interval', 1000, 'number of iterations for saving and visualization')
-    flags.DEFINE_integer('random_seed', 1234, 'random seed')
-    flags.DEFINE_float('weight_decay', 0.0005, 'weight decay rate')
-    flags.DEFINE_float('learning_rate', 2.5e-4, 'learning rate')
-    flags.DEFINE_float('power', 0.9, 'hyperparameter for poly learning rate')
+    flags.DEFINE_boolean('is_base_envnet', True, 'True for base network, false for between sound')
+    flags.DEFINE_float('initial_learning_rate', 0.01, 'learning rate')
+    flags.DEFINE_integer('num_steps', 600, 'maximum number of iterations')
+    flags.DEFINE_float('lr_schedule', [300.0,450.0], 'after this amount of epochs, the learning rate is divided by 10')
+    flags.DEFINE_float('warmup', 0.0, 'for the first warmup epochs, lr is multiplied by 0.1')
     flags.DEFINE_float('momentum', 0.9, 'momentum')
+    flags.DEFINE_float('weight_decay', 0.0005, 'weight decay rate')
+    flags.DEFINE_string('optimization_type', 'Nestrov', 'optimization type')
+    flags.DEFINE_integer('k_cross_val', 5, 'number of cross validation sections')
+
+
+    flags.DEFINE_integer('save_interval', 200, 'number of iterations for saving the model')
+    flags.DEFINE_integer('random_seed', 1234, 'random seed')
     flags.DEFINE_string('encoder_name', 'DSRNet', 'name of pre-trained model')
     flags.DEFINE_string('pretrain_file', '', 'pre-trained model filename corresponding to encoder_name')
     flags.DEFINE_string('data_list', 'dataset/ESC-50-master/meta/esc50.csv', 'training data list filename')
@@ -33,12 +39,11 @@ def configure():
     flags.DEFINE_integer('test_step', 20000, 'checkpoint number for testing/validation')
     flags.DEFINE_integer('test_num_steps', 1449, '= number of testing/validation samples')
     flags.DEFINE_string('test_data_list', './dataset/val.txt', 'testing/validation data list filename')
-    flags.DEFINE_boolean('visual', True, 'whether to save predictions for visualization')
 
     # data
     flags.DEFINE_string('data_dir', 'dataset/ESC-50-master/audio/', 'path to data directory')
     flags.DEFINE_integer('batch_size', 64, 'training batch size')
-    flags.DEFINE_integer('input_size', 220500, 'input image width')
+    flags.DEFINE_integer('input_size', 66650, 'input image width')
     flags.DEFINE_integer('num_classes', 50, 'number of classes')
 
     # log
