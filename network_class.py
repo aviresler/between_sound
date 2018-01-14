@@ -5,8 +5,9 @@ import six
 
 class DSRNet(object):
   
-    def __init__(self, inputs, num_classes, phase):
+    def __init__(self, inputs, num_classes, phase,keep_prob):
         self.inputs = inputs
+        self.keep_prob = keep_prob
         self.num_classes = num_classes
         self.channel_axis = 3
         self.phase = phase # train (True) or test (False), for BN layers in the decoder
@@ -46,9 +47,9 @@ class DSRNet(object):
         shape = pool10.get_shape().as_list()
         reshape10 = tf.reshape(pool10, [shape[0], shape[1] * shape[2] * shape[3]])
         fc11 = self._fc(reshape10, shape[1] * shape[2] * shape[3], 4096, name= 'fc11')
-        dropped_fc11 = tf.nn.dropout(fc11, 0.5)
+        dropped_fc11 = tf.nn.dropout(fc11, self.keep_prob)
         fc12 = self._fc(dropped_fc11, 4096, 4096, name= 'fc12')
-        dropped_fc12 = tf.nn.dropout(fc12, 0.5)
+        dropped_fc12 = tf.nn.dropout(fc12, self.keep_prob)
         self.outputs = self._fc(dropped_fc12, 4096, self.num_classes, name= 'fc13')
         
    
